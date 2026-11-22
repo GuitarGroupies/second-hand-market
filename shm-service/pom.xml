@@ -20,5 +20,17 @@
             <groupId>com.students</groupId>
             <artifactId>shm-mapper</artifactId>
         </dependency>
+        <!-- Lombok：父 pom 中的 lombok 标了 optional，不向下传递，这里显式声明 -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <!-- MyBatis-Plus：业务层直接使用 LambdaQueryWrapper / MetaObjectHandler / MybatisPlusInterceptor，
+             虽然可由 shm-mapper 传递获得，但显式声明可避免依赖链变化时编译失败 -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+        </dependency>
     </dependencies>
 </project>
