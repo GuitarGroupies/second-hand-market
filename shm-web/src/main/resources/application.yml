@@ -36,3 +36,14 @@ knife4j:
     email: xxx@qq.com
     concat: 学生
     version: 1.0
+
+
+
+# ==================== 项目自定义配置 ====================
+shm:
+  jwt:
+    # JWT 签名密钥：HS256 要求至少 32 字节（256 位），下面长度足够
+    # 生产环境建议改由环境变量注入，不要写死在配置文件里
+    secret: shiguangji-second-hand-market-jwt-secret-2026-v1-keep-it-long-enough
+    # Token 有效期（秒）：7 天
+    expire-seconds: 604800

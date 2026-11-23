@@ -32,6 +32,21 @@
             <groupId>jakarta.validation</groupId>
             <artifactId>jakarta.validation-api</artifactId>
         </dependency>
+        <!-- JWT：JwtUtil 位于本模块，需要 api 编译期使用、impl/jackson 运行时使用 -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <scope>runtime</scope>
+        </dependency>
         <!-- Lombok：@Data / @Getter / @Slf4j 编译期使用 -->
         <dependency>
             <groupId>org.projectlombok</groupId>

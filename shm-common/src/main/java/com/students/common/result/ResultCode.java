@@ -21,7 +21,10 @@ public enum ResultCode {
     PARAM_ERROR(40001, "请求参数错误"),
 
     /** 未登录或登录态已失效 */
-    UNAUTHORIZED(40101, "未登录或登录已过期"),
+    UNAUTHORIZED(40101, "请先登录，登录后即可使用完整功能"),
+
+    /** 游客浏览次数已用完，需要登录 */
+    GUEST_LIMIT(40103, "登录后可以继续浏览更多商品"),
 
     /** 没有访问权限 */
     FORBIDDEN(40301, "无权限访问"),
@@ -31,6 +34,15 @@ public enum ResultCode {
 
     /** 分类不存在 */
     CATEGORY_NOT_FOUND(40402, "分类不存在"),
+
+    /** 用户名已存在 */
+    USERNAME_EXISTS(40901, "用户名已存在"),
+
+    /** 用户名或密码错误 */
+    PASSWORD_ERROR(40102, "用户名或密码错误"),
+
+    /** 用户不存在 */
+    USER_NOT_FOUND(40404, "用户不存在"),
 
     /** 商品不存在 */
     PRODUCT_NOT_FOUND(40403, "商品不存在"),
