@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拾光集 · 二手交易平台</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1100px; margin: 0 auto; }
+
+        /* 顶部栏 */
+        .topbar {
+            display: flex; justify-content: space-between; align-items: center;
+            background: #fff; padding: 14px 22px; border-radius: 12px;
+            margin-bottom: 18px; box-shadow: 0 4px 20px rgba(0,0,0,.1);
+        }
+        .logo { font-size: 20px; font-weight: 700; color: #4c51bf; }
+        .user-info { display: flex; align-items: center; gap: 12px; font-size: 14px; color: #555; }
+        .badge { background: #ebf4ff; color: #4c51bf; padding: 4px 10px; border-radius: 20px; font-size: 12px; }
+
+        /* 卡片 */
+        .card {
+            background: #fff; border-radius: 12px; padding: 22px;
+            box-shadow: 0 4px 20px rgba(0,0,0,.1); margin-bottom: 18px;
+        }
+        h2 { font-size: 16px; color: #333; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+
+        /* 登录 */
+        .login-box { max-width: 360px; margin: 60px auto; }
+        .login-box h1 { text-align: center; color: #4c51bf; font-size: 26px; margin-bottom: 8px; }
+        .login-box p.sub { text-align: center; color: #888; font-size: 13px; margin-bottom: 24px; }
+        .form-item { margin-bottom: 14px; }
+        .form-item label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; }
+        input {
+            width: 100%; padding: 11px 14px; border: 1px solid #ddd;
+            border-radius: 8px; font-size: 14px; outline: none; transition: .2s;
+        }
+        input:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,.12); }
+        .btn {
+            width: 100%; padding: 12px; border: none; border-radius: 8px;
+            background: linear-gradient(135deg,#667eea,#764ba2); color: #fff;
+            font-size: 15px; font-weight: 600; cursor: pointer; transition: .2s;
+        }
+        .btn:hover { opacity: .9; transform: translateY(-1px); }
+        .btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+        .btn-sm {
+            width: auto; padding: 7px 16px; font-size: 13px;
+            background: #f0f2ff; color: #4c51bf; border: 1px solid #d6dcff;
+        }
+        .btn-sm:hover { background: #e4e8ff; }
+        .btn-sm.active { background: #667eea; color: #fff; border-color: #667eea; }
+        .btn-sm.active-dislike { background: #e74c3c; color: #fff; border-color: #e74c3c; }
+
+        /* 商品 */
+        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px,1fr)); gap: 14px; }
+        .product-item {
+            border: 1px solid #eee; border-radius: 10px; overflow: hidden;
+            cursor: pointer; transition: .2s; background: #fafbff;
+        }
+        .product-item:hover { border-color: #b3bcff; transform: translateY(-2px); box-shadow: 0 6px 18px rgba(102,126,234,.15); }
+        .product-cover {
+            height: 130px; background: linear-gradient(135deg,#e0e7ff,#f3e8ff);
+            display: flex; align-items: center; justify-content: center;
+            color: #a0aec0; font-size: 13px;
+        }
+        .product-body { padding: 12px; }
+        .product-title { font-size: 14px; color: #333; margin-bottom: 8px; overflow: hidden;
+            text-overflow: ellipsis; white-space: nowrap; }
+        .product-price { color: #e53e3e; font-size: 17px; font-weight: 700; }
+        .product-meta { display: flex; justify-content: space-between; font-size: 12px; color: #999; margin-top: 8px; }
+
+        /* 详情 */
+        .detail-title { font-size: 20px; color: #222; margin-bottom: 10px; }
+        .detail-price { color: #e53e3e; font-size: 28px; font-weight: 700; margin: 10px 0; }
+        .detail-desc { color: #666; font-size: 14px; line-height: 1.8; margin: 14px 0; padding: 14px; background: #f9fafb; border-radius: 8px; }
+        .detail-seller { color: #888; font-size: 13px; }
+
+        /* 互动按钮 */
+        .actions { display: flex; gap: 10px; margin: 18px 0; flex-wrap: wrap; }
+        .act-btn {
+            display: flex; align-items: center; gap: 6px;
+            padding: 10px 20px; border: 1px solid #e0e0e0; border-radius: 24px;
+            background: #fff; cursor: pointer; font-size: 14px; color: #555; transition: .2s;
+        }
+        .act-btn:hover { border-color: #667eea; color: #4c51bf; }
+        .act-btn.active { background: #667eea; color: #fff; border-color: #667eea; }
+        .act-btn.active-want { background: #38a169; color: #fff; border-color: #38a169; }
+        .act-btn.active-dislike { background: #e74c3c; color: #fff; border-color: #e74c3c; }
+
+        /* 评论 */
+        .comment-item { padding: 14px 0; border-bottom: 1px solid #f0f0f0; }
+        .comment-head { display: flex; justify-content: space-between; font-size: 13px; color: #999; margin-bottom: 6px; }
+        .comment-content { font-size: 14px; color: #333; line-height: 1.6; margin-bottom: 10px; }
+        .comment-actions { display: flex; gap: 14px; font-size: 13px; color: #888; }
+        .comment-actions span { cursor: pointer; transition: .2s; }
+        .comment-actions span:hover { color: #4c51bf; }
+        .comment-actions span.liked { color: #4c51bf; font-weight: 600; }
+        .comment-actions span.disliked { color: #e74c3c; font-weight: 600; }
+
+        /* 提示 */
+        .toast {
+            position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+            padding: 12px 24px; border-radius: 8px; color: #fff; font-size: 14px;
+            z-index: 9999; opacity: 0; transition: .3s; pointer-events: none;
+        }
+        .toast.show { opacity: 1; }
+        .toast.ok { background: #38a169; }
+        .toast.err { background: #e53e3e; }
+
+        .loading { text-align: center; padding: 40px; color: #999; font-size: 14px; }
+        .back-link { color: #4c51bf; cursor: pointer; font-size: 14px; margin-bottom: 16px; display: inline-block; }
+        .back-link:hover { text-decoration: underline; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- ========== 登录页 ========== -->
+    <div id="loginPage" class="card login-box">
+        <h1>拾光集</h1>
+        <p class="sub">二手交易平台 · 让闲置物品流转起来</p>
+        <div class="form-item">
+            <label>用户名</label>
+            <input id="username" type="text" placeholder="请输入用户名" value="testuser01">
+        </div>
+        <div class="form-item">
+            <label>密码</label>
+            <input id="password" type="password" placeholder="请输入密码" value="123456"
+                   onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+        <button class="btn" id="loginBtn" onclick="doLogin()">登 录</button>
+        <p style="text-align:center;font-size:12px;color:#aaa;margin-top:16px;">
+            测试账号：testuser01 / tom / jerry，密码均为 123456
+        </p>
+    </div>
+
+    <!-- ========== 商品列表页 ========== -->
+    <div id="listPage" class="hidden">
+        <div class="topbar">
+            <div class="logo">拾光集</div>
+            <div class="user-info">
+                <span class="badge" id="userName">-</span>
+                <button class="btn btn-sm" onclick="doLogout()">退出登录</button>
+            </div>
+        </div>
+        <div class="card">
+            <h2>商品列表</h2>
+            <div id="productList" class="product-grid"></div>
+            <div id="listLoading" class="loading">加载中...</div>
+        </div>
+    </div>
+
+    <!-- ========== 商品详情页 ========== -->
+    <div id="detailPage" class="hidden">
+        <div class="topbar">
+            <div class="logo">拾光集</div>
+            <div class="user-info">
+                <span class="badge" id="userName2">-</span>
+                <button class="btn btn-sm" onclick="doLogout()">退出登录</button>
+            </div>
+        </div>
+        <div class="card">
+            <span class="back-link" onclick="showList()">← 返回列表</span>
+            <div id="detailBody"><div class="loading">加载中...</div></div>
+        </div>
+    </div>
+
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+    /* ==================== 全局状态 ==================== */
+    // 把 token 存在 localStorage，刷新页面也不丢
+    const API = '';
+    let currentUser = null;
+
+    function getToken() { return localStorage.getItem('shm_token'); }
+    function setToken(t) { localStorage.setItem('shm_token', t); }
+    function clearToken() { localStorage.removeItem('shm_token'); }
+
+    /* ==================== 通用请求 ==================== */
+    // 统一封装 fetch：自动带 token、统一处理 code != 200
+    async function request(path, options = {}) {
+        const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+        const token = getToken();
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
+        const res = await fetch(API + path, { ...options, headers });
+        const json = await res.json();
+
+        // 40101 未登录 → 踢回登录页
+        if (json.code === 40101) {
+            clearToken();
+            showLogin();
+            throw new Error(json.message);
+        }
+        if (json.code !== 200) {
+            throw new Error(json.message || '请求失败');
+        }
+        return json.data;
+    }
+
+    /* ==================== 提示 ==================== */
+    let toastTimer = null;
+    function toast(msg, ok = true) {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.className = 'toast show ' + (ok ? 'ok' : 'err');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { el.className = 'toast'; }, 2200);
+    }
+
+    /* ==================== 页面切换 ==================== */
+    function showLogin() {
+        document.getElementById('loginPage').classList.remove('hidden');
+        document.getElementById('listPage').classList.add('hidden');
+        document.getElementById('detailPage').classList.add('hidden');
+    }
+    function showList() {
+        document.getElementById('loginPage').classList.add('hidden');
+        document.getElementById('listPage').classList.remove('hidden');
+        document.getElementById('detailPage').classList.add('hidden');
+        document.getElementById('userName').textContent = currentUser ? currentUser.nickname : '-';
+        loadProducts();
+    }
+    function showDetail() {
+        document.getElementById('loginPage').classList.add('hidden');
+        document.getElementById('listPage').classList.add('hidden');
+        document.getElementById('detailPage').classList.remove('hidden');
+        document.getElementById('userName2').textContent = currentUser ? currentUser.nickname : '-';
+    }
+
+    /* ==================== 登录 ==================== */
+    async function doLogin() {
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+        if (!username || !password) { toast('请输入用户名和密码', false); return; }
+
+        const btn = document.getElementById('loginBtn');
+        btn.disabled = true; btn.textContent = '登录中...';
+        try {
+            const data = await request('/api/user/login', {
+                method: 'POST',
+                body: JSON.stringify({ username, password })
+            });
+            setToken(data.token);
+            currentUser = data.user;
+            toast('登录成功，欢迎 ' + data.user.nickname);
+            showList();
+        } catch (e) {
+            toast(e.message, false);
+        } finally {
+            btn.disabled = false; btn.textContent = '登 录';
+        }
+    }
+
+    /* ==================== 退出 ==================== */
+    async function doLogout() {
+        try { await request('/api/user/logout', { method: 'POST' }); } catch (e) {}
+        clearToken();
+        currentUser = null;
+        toast('已退出登录');
+        showLogin();
+    }
+
+    /* ==================== 商品列表 ==================== */
+    async function loadProducts() {
+        const box = document.getElementById('productList');
+        const loading = document.getElementById('listLoading');
+        box.innerHTML = ''; loading.classList.remove('hidden');
+        try {
+            const list = await request('/api/product/list?pageNum=1&pageSize=12');
+            loading.classList.add('hidden');
+            if (!list || list.length === 0) {
+                box.innerHTML = '<div class="loading">暂无商品</div>';
+                return;
+            }
+            box.innerHTML = list.map(p => `
+                <div class="product-item" onclick="openDetail(${p.id})">
+                    <div class="product-cover">${p.coverImage ? '' : '暂无图片'}</div>
+                    <div class="product-body">
+                        <div class="product-title">${escapeHtml(p.title)}</div>
+                        <div class="product-price">¥${p.price}</div>
+                        <div class="product-meta">
+                            <span>👁 ${p.viewCount || 0}</span>
+                            <span>${formatDate(p.createTime)}</span>
+                        </div>
+                    </div>
+                </div>`).join('');
+        } catch (e) {
+            loading.classList.add('hidden');
+            box.innerHTML = '<div class="loading">' + e.message + '</div>';
+        }
+    }
+
+    /* ==================== 商品详情 ==================== */
+    let currentProductId = null;
+
+    async function openDetail(id) {
+        currentProductId = id;
+        showDetail();
+        const body = document.getElementById('detailBody');
+        body.innerHTML = '<div class="loading">加载中...</div>';
+        try {
+            const d = await request('/api/product/' + id);
+            body.innerHTML = `
+                <div class="detail-title">${escapeHtml(d.title)}</div>
+                <div class="detail-seller">卖家：${escapeHtml(d.sellerNickname || '未知')}　|　浏览 ${d.viewCount || 0} 次</div>
+                <div class="detail-price">¥${d.price} <span style="font-size:14px;color:#aaa;text-decoration:line-through">¥${d.originalPrice || ''}</span></div>
+                <div class="detail-desc">${escapeHtml(d.description || '暂无描述')}</div>
+                <div class="actions">
+                    <div class="act-btn" id="likeBtn" onclick="toggleLike()">👍 点赞 <span id="likeCount">0</span></div>
+                    <div class="act-btn" id="wantBtn" onclick="toggleWant()">🤝 想要 <span id="wantCount">0</span></div>
+                </div>
+                <h2 style="margin-top:28px">评论</h2>
+                <div id="commentBox"></div>`;
+            loadComments(id);
+        } catch (e) {
+            body.innerHTML = '<div class="loading">' + e.message + '</div>';
+        }
+    }
+
+    /* ==================== 点赞 / 想要 ==================== */
+    async function toggleLike() {
+        try {
+            const r = await request('/api/interaction/product/' + currentProductId + '/like', { method: 'POST' });
+            const btn = document.getElementById('likeBtn');
+            document.getElementById('likeCount').textContent = r.count;
+            btn.classList.toggle('active', r.liked);
+            toast(r.liked ? '已点赞' : '已取消点赞');
+        } catch (e) { toast(e.message, false); }
+    }
+
+    async function toggleWant() {
+        try {
+            const r = await request('/api/interaction/product/' + currentProductId + '/want', { method: 'POST' });
+            const btn = document.getElementById('wantBtn');
+            document.getElementById('wantCount').textContent = r.count;
+            btn.classList.toggle('active-want', r.liked);
+            toast(r.liked ? '已加入想要' : '已取消想要');
+        } catch (e) { toast(e.message, false); }
+    }
+
+    /* ==================== 评论 ==================== */
+    async function loadComments(productId) {
+        const box = document.getElementById('commentBox');
+        box.innerHTML = '<div class="loading" style="padding:20px">评论功能待实现（后端接口开发中）</div>';
+    }
+
+    /* ==================== 工具 ==================== */
+    function escapeHtml(s) {
+        if (s == null) return '';
+        return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+    }
+    function formatDate(s) {
+        if (!s) return '';
+        return String(s).replace('T', ' ').slice(0, 10);
+    }
+
+    /* ==================== 启动 ==================== */
+    // 如果已有 token，直接尝试拉当前用户信息
+    (async function init() {
+        if (getToken()) {
+            try {
+                currentUser = await request('/api/user/me');
+                showList();
+                return;
+            } catch (e) { clearToken(); }
+        }
+        showLogin();
+    })();
+</script>
+</body>
+</html>

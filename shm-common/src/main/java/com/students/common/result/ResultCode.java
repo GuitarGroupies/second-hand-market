@@ -46,6 +46,9 @@ public enum ResultCode {
 
     /** 商品不存在 */
     PRODUCT_NOT_FOUND(40403, "商品不存在"),
+    /** 评论不存在 */
+    COMMENT_NOT_FOUND(40405, "评论不存在"),
+
 
     /** 系统内部异常 */
     SYSTEM_ERROR(50000, "系统繁忙，请稍后再试");
