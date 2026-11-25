@@ -26,9 +26,10 @@ public interface ProductService {
      * 商品详情。
      *
      * @param productId 商品 ID
+     * @param userId    当前用户 ID，可为 null（游客）
      * @return 商品详情
      */
-    ProductDetailVO getDetail(Long productId);
+    ProductDetailVO getDetail(Long productId, Long userId);
 
     /**
      * 发布商品。

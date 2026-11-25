@@ -55,6 +55,18 @@ public class ProductDetailVO implements Serializable {
     /** 图片列表 */
     private List<String> images;
 
+    /** 点赞总数 */
+    private Long likeCount;
+
+    /** 当前用户是否已点赞（未登录为 null） */
+    private Boolean liked;
+
+    /** 想要总数 */
+    private Long wantCount;
+
+    /** 当前用户是否已想要（未登录为 null） */
+    private Boolean wanted;
+
     /** 发布时间 */
     private LocalDateTime createTime;
 }

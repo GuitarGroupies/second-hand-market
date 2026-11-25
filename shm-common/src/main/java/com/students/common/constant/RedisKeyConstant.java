@@ -40,6 +40,9 @@ public final class RedisKeyConstant {
     /** 商品详情缓存，完整 key 为 shm:product:detail:{productId} */
     public static final String PRODUCT_DETAIL = PREFIX + "product:detail:";
 
+    /** 商品浏览量计数，完整 key 为 shm:product:view:{productId} */
+    public static final String PRODUCT_VIEW = PREFIX + "product:view:";
+
     /** 商品详情缓存有效期（分钟） */
     public static final long PRODUCT_DETAIL_TTL_MINUTES = 30L;
 

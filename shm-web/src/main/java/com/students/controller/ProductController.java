@@ -72,6 +72,6 @@ public class ProductController {
     @Operation(summary = "商品详情")
     @GetMapping("/{id}")
     public Result<ProductDetailVO> detail(@PathVariable Long id) {
-        return Result.success(productService.getDetail(id));
+        return Result.success(productService.getDetail(id, UserContext.getUserId()));
     }
 }

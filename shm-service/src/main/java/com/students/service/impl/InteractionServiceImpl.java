@@ -2,6 +2,7 @@ package com.students.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.students.common.exception.BizException;
+import com.students.common.constant.RedisKeyConstant;
 import com.students.common.result.ResultCode;
 import com.students.mapper.CommentLikeMapper;
 import com.students.mapper.ProductCommentMapper;
@@ -16,6 +17,7 @@ import com.students.pojo.vo.LikeResultVO;
 import com.students.service.InteractionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +41,8 @@ public class InteractionServiceImpl implements InteractionService {
     private final ProductCommentMapper productCommentMapper;
 
     private final CommentLikeMapper commentLikeMapper;
+
+    private final StringRedisTemplate stringRedisTemplate;
 
     @Override
     public LikeResultVO toggleProductLike(Long productId, Long userId) {
@@ -82,6 +86,7 @@ public class InteractionServiceImpl implements InteractionService {
         vo.setCount(count);
         log.info("商品点赞切换：userId={}, productId={}, liked={}, count={}",
                 userId, productId, liked, count);
+        stringRedisTemplate.delete(RedisKeyConstant.PRODUCT_DETAIL + productId);
         return vo;
     }
 
@@ -126,6 +131,7 @@ public class InteractionServiceImpl implements InteractionService {
         vo.setCount(count);
         log.info("商品想要切换：userId={}, productId={}, wanted={}, count={}",
                 userId, productId, wanted, count);
+        stringRedisTemplate.delete(RedisKeyConstant.PRODUCT_DETAIL + productId);
         return vo;
     }
 

@@ -8,16 +8,21 @@ import com.students.common.constant.RedisKeyConstant;
 import com.students.common.exception.BizException;
 import com.students.common.result.ResultCode;
 import com.students.mapper.ProductImageMapper;
+import com.students.mapper.ProductLikeMapper;
 import com.students.mapper.ProductMapper;
+import com.students.mapper.ProductWantMapper;
 import com.students.mapper.SysUserMapper;
 import com.students.pojo.dto.ProductCreateDTO;
 import com.students.pojo.entity.Product;
 import com.students.pojo.entity.ProductImage;
+import com.students.pojo.entity.ProductLike;
+import com.students.pojo.entity.ProductWant;
 import com.students.pojo.entity.SysUser;
 import com.students.pojo.query.ProductQuery;
 import com.students.pojo.vo.ProductDetailVO;
 import com.students.pojo.vo.ProductVO;
 import com.students.service.ProductService;
+import com.students.service.ViewCountService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -64,6 +69,12 @@ public class ProductServiceImpl implements ProductService {
 
     private final SysUserMapper sysUserMapper;
 
+    private final ProductLikeMapper productLikeMapper;
+
+    private final ProductWantMapper productWantMapper;
+
+    private final ViewCountService viewCountService;
+
     private final StringRedisTemplate stringRedisTemplate;
 
     @Override
@@ -98,7 +109,10 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public ProductDetailVO getDetail(Long productId) {
+    public ProductDetailVO getDetail(Long productId, Long userId) {
+        // 0. 浏览量 +1：只写 Redis，由定时任务批量落库
+        viewCountService.increment(productId);
+
         // 1. 先查缓存
         String cacheKey = RedisKeyConstant.PRODUCT_DETAIL + productId;
         String cached = stringRedisTemplate.opsForValue().get(cacheKey);
@@ -110,7 +124,10 @@ public class ProductServiceImpl implements ProductService {
                 throw new BizException(ResultCode.PRODUCT_NOT_FOUND);
             }
             log.info("商品详情命中缓存：productId={}", productId);
-            return JSONUtil.toBean(cached, ProductDetailVO.class);
+            ProductDetailVO cachedVo = JSONUtil.toBean(cached, ProductDetailVO.class);
+            // 缓存里不含「当前用户」相关状态，需要实时补上
+            fillUserState(cachedVo, userId);
+            return cachedVo;
         }
 
         // 3. 缓存未命中，查数据库
@@ -124,6 +141,14 @@ public class ProductServiceImpl implements ProductService {
 
         // 4. 组装详情（商品 + 图片 + 卖家昵称）
         ProductDetailVO detail = buildDetail(product);
+        // 点赞/想要总数随商品走，可以进缓存；当前用户状态放在缓存之外补
+        detail.setLikeCount(productLikeMapper.selectCount(
+                new LambdaQueryWrapper<ProductLike>()
+                        .eq(ProductLike::getProductId, productId)));
+        detail.setWantCount(productWantMapper.selectCount(
+                new LambdaQueryWrapper<ProductWant>()
+                        .eq(ProductWant::getProductId, productId)));
+        fillUserState(detail, userId);
 
         // 5. 写回缓存：基础 TTL + 随机偏移，防雪崩
         long ttl = RedisKeyConstant.PRODUCT_DETAIL_TTL_MINUTES * 60
@@ -167,6 +192,31 @@ public class ProductServiceImpl implements ProductService {
         vo.setSellerNickname(seller == null ? "" : seller.getNickname());
 
         return vo;
+    }
+
+    /**
+     * 填充「当前用户」相关的互动状态。
+     *
+     * <p>这部分数据因人而异，不能进缓存，必须每次实时查询。
+     * 游客（userId 为 null）时置为 false，前端据此隐藏高亮。</p>
+     *
+     * @param vo     商品详情
+     * @param userId 当前用户 ID，可为 null
+     */
+    private void fillUserState(ProductDetailVO vo, Long userId) {
+        if (userId == null) {
+            vo.setLiked(false);
+            vo.setWanted(false);
+            return;
+        }
+        vo.setLiked(productLikeMapper.selectCount(
+                new LambdaQueryWrapper<ProductLike>()
+                        .eq(ProductLike::getUserId, userId)
+                        .eq(ProductLike::getProductId, vo.getId())) > 0);
+        vo.setWanted(productWantMapper.selectCount(
+                new LambdaQueryWrapper<ProductWant>()
+                        .eq(ProductWant::getUserId, userId)
+                        .eq(ProductWant::getProductId, vo.getId())) > 0);
     }
 
     /**

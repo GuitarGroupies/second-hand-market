@@ -317,10 +317,17 @@
                 <div class="detail-price">¥${d.price} <span style="font-size:14px;color:#aaa;text-decoration:line-through">¥${d.originalPrice || ''}</span></div>
                 <div class="detail-desc">${escapeHtml(d.description || '暂无描述')}</div>
                 <div class="actions">
-                    <div class="act-btn" id="likeBtn" onclick="toggleLike()">👍 点赞 <span id="likeCount">0</span></div>
-                    <div class="act-btn" id="wantBtn" onclick="toggleWant()">🤝 想要 <span id="wantCount">0</span></div>
+                    <div class="act-btn${d.liked ? ' active' : ''}" id="likeBtn" onclick="toggleLike()">👍 点赞 <span id="likeCount">${d.likeCount || 0}</span></div>
+                    <div class="act-btn${d.wanted ? ' active-want' : ''}" id="wantBtn" onclick="toggleWant()">🤝 想要 <span id="wantCount">${d.wantCount || 0}</span></div>
                 </div>
                 <h2 style="margin-top:28px">评论</h2>
+                <div id="commentInput" style="margin-bottom:16px">
+                    <textarea id="commentText" placeholder="说点什么..." maxlength="500"
+                        style="width:100%;height:70px;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;outline:none;resize:vertical;"></textarea>
+                    <div style="text-align:right;margin-top:8px">
+                        <button class="btn btn-sm" id="commentBtn" onclick="submitComment()">发表评论</button>
+                    </div>
+                </div>
                 <div id="commentBox"></div>`;
             loadComments(id);
         } catch (e) {
@@ -352,7 +359,76 @@
     /* ==================== 评论 ==================== */
     async function loadComments(productId) {
         const box = document.getElementById('commentBox');
-        box.innerHTML = '<div class="loading" style="padding:20px">评论功能待实现（后端接口开发中）</div>';
+        box.innerHTML = '<div class="loading" style="padding:20px">加载评论中...</div>';
+        try {
+            const list = await request('/api/comment/product/' + productId);
+            if (!list || list.length === 0) {
+                box.innerHTML = '<div class="loading" style="padding:20px">还没有评论，来说两句吧</div>';
+                return;
+            }
+            box.innerHTML = list.map(c => renderComment(c, false)).join('');
+        } catch (e) {
+            box.innerHTML = '<div class="loading">' + e.message + '</div>';
+        }
+    }
+
+    /* 渲染单条评论；isChild 表示回复 */
+    function renderComment(c, isChild) {
+        const voteUp = c.myVote === 1 ? 'liked' : '';
+        const voteDown = c.myVote === 2 ? 'disliked' : '';
+        const children = (c.children || []).map(x => renderComment(x, true)).join('');
+        return `
+            <div class="comment-item" style="${isChild ? 'padding-left:32px;background:#fafbff;' : ''}">
+                <div class="comment-head">
+                    <span>${escapeHtml(c.nickname || '匿名用户')}</span>
+                    <span>${formatDate(c.createTime)}</span>
+                </div>
+                <div class="comment-content">${escapeHtml(c.content)}</div>
+                <div class="comment-actions">
+                    <span class="${voteUp}" onclick="voteComment(${c.id}, 1)">👍 ${c.likeCount || 0}</span>
+                    <span class="${voteDown}" onclick="voteComment(${c.id}, 2)">👎 ${c.dislikeCount || 0}</span>
+                    <span onclick="replyComment(${c.id})">回复</span>
+                </div>
+                ${children}
+            </div>`;
+    }
+
+    /* 回复：把 parentId 记下来，发表时带上 */
+    let replyParentId = 0;
+    function replyComment(commentId) {
+        replyParentId = commentId;
+        const ta = document.getElementById('commentText');
+        ta.placeholder = '回复这条评论...';
+        ta.focus();
+    }
+
+    async function submitComment() {
+        const ta = document.getElementById('commentText');
+        const content = ta.value.trim();
+        if (!content) { toast('评论内容不能为空', false); return; }
+        const btn = document.getElementById('commentBtn');
+        btn.disabled = true; btn.textContent = '发表中...';
+        try {
+            await request('/api/comment/product/' + currentProductId, {
+                method: 'POST',
+                body: JSON.stringify({ content, parentId: replyParentId })
+            });
+            ta.value = ''; replyParentId = 0; ta.placeholder = '说点什么...';
+            toast('评论发表成功');
+            loadComments(currentProductId);
+        } catch (e) {
+            toast(e.message, false);
+        } finally {
+            btn.disabled = false; btn.textContent = '发表评论';
+        }
+    }
+
+    async function voteComment(commentId, type) {
+        try {
+            const r = await request('/api/interaction/comment/' + commentId + '/like?type=' + type, { method: 'POST' });
+            toast(r.liked ? '已点赞' : (r.dislikeCount > 0 ? '已点踩' : '已取消'));
+            loadComments(currentProductId);
+        } catch (e) { toast(e.message, false); }
     }
 
     /* ==================== 工具 ==================== */
