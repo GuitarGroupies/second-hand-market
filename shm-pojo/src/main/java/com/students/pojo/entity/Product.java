@@ -52,4 +52,7 @@ public class Product extends BaseDO {
 
     /** 状态：0 下架，1 在售，2 已售出 */
     private Integer status;
+
+    /** 标签，逗号分隔，不含 # 号 */
+    private String tags;
 }

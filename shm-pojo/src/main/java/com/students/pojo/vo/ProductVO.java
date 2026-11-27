@@ -6,6 +6,7 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 商品列表卡片 VO。
@@ -41,4 +42,7 @@ public class ProductVO implements Serializable {
 
     /** 发布时间 */
     private LocalDateTime createTime;
+
+    /** 标签列表（不含 # 号，前端自行拼接） */
+    private List<String> tags;
 }

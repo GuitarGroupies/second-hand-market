@@ -13,6 +13,7 @@ import com.students.mapper.ProductMapper;
 import com.students.mapper.ProductWantMapper;
 import com.students.mapper.SysUserMapper;
 import com.students.pojo.dto.ProductCreateDTO;
+import com.students.pojo.dto.ProductUpdateDTO;
 import com.students.pojo.entity.Product;
 import com.students.pojo.entity.ProductImage;
 import com.students.pojo.entity.ProductLike;
@@ -32,6 +33,10 @@ import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -56,6 +61,9 @@ public class ProductServiceImpl implements ProductService {
 
     /** 排序方式：价格降序 */
     private static final String SORT_PRICE_DESC = "price_desc";
+
+    /** 标签数量上限 */
+    private static final int MAX_TAG_COUNT = 10;
 
     /** 空值缓存过期时间（分钟），比正常缓存短很多 */
     private static final long NULL_CACHE_TTL_MINUTES = 5L;
@@ -179,6 +187,7 @@ public class ProductServiceImpl implements ProductService {
         vo.setViewCount(product.getViewCount());
         vo.setStatus(product.getStatus());
         vo.setCreateTime(product.getCreateTime());
+        vo.setTags(splitTags(product.getTags()));
 
         // 查图片，按 sort 升序
         List<ProductImage> images = productImageMapper.selectList(
@@ -193,7 +202,6 @@ public class ProductServiceImpl implements ProductService {
 
         return vo;
     }
-
     /**
      * 填充「当前用户」相关的互动状态。
      *
@@ -251,8 +259,11 @@ public class ProductServiceImpl implements ProductService {
         vo.setCategoryId(entity.getCategoryId());
         vo.setViewCount(entity.getViewCount());
         vo.setCreateTime(entity.getCreateTime());
+        vo.setTags(splitTags(entity.getTags()));
         return vo;
     }
+    
+
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -272,6 +283,7 @@ public class ProductServiceImpl implements ProductService {
         product.setStock(dto.getStock() == null ? 1 : dto.getStock());
         product.setViewCount(0);
         product.setStatus(STATUS_ON_SALE);
+        product.setTags(String.join(",", cleanTags(dto.getTags())));
 
         productMapper.insert(product);
         // MyBatis-Plus 插入后会回填自增主键
@@ -295,4 +307,149 @@ public class ProductServiceImpl implements ProductService {
                 productId, userId, dto.getImages() == null ? 0 : dto.getImages().size());
         return productId;
     }
-}
+@Override
+    @Transactional(rollbackFor = Exception.class)
+    public void update(Long productId, ProductUpdateDTO dto, Long userId) {
+        Product product = getOwnedProduct(productId, userId);
+
+        // 部分更新：只有传了才改
+        if (dto.getTitle() != null) {
+            product.setTitle(dto.getTitle());
+        }
+        if (dto.getDescription() != null) {
+            product.setDescription(dto.getDescription());
+        }
+        if (dto.getPrice() != null) {
+            product.setPrice(dto.getPrice());
+        }
+        if (dto.getOriginalPrice() != null) {
+            product.setOriginalPrice(dto.getOriginalPrice());
+        }
+        if (dto.getStock() != null) {
+            product.setStock(dto.getStock());
+        }
+        if (dto.getCategoryId() != null) {
+            product.setCategoryId(dto.getCategoryId());
+        }
+        if (dto.getTags() != null) {
+            product.setTags(String.join(",", cleanTags(dto.getTags())));
+        }
+        // 图片：null 不处理；空数组表示清空；非空数组表示全量替换
+        if (dto.getImages() != null) {
+            List<String> urls = dto.getImages();
+            product.setCoverImage(urls.isEmpty() ? "" : urls.get(0));
+            productImageMapper.delete(new LambdaQueryWrapper<ProductImage>()
+                    .eq(ProductImage::getProductId, productId));
+            for (int i = 0; i < urls.size(); i++) {
+                ProductImage image = new ProductImage();
+                image.setProductId(productId);
+                image.setUrl(urls.get(i));
+                image.setSort(i);
+                productImageMapper.insert(image);
+            }
+        }
+        productMapper.updateById(product);
+        // 写操作后必须清详情缓存，否则用户看到的是旧数据
+        stringRedisTemplate.delete(RedisKeyConstant.PRODUCT_DETAIL + productId);
+        log.info("商品修改成功：productId={}, userId={}", productId, userId);
+    }
+
+    @Override
+    public void updateStatus(Long productId, Integer status, Long userId) {
+        if (status == null || (status != 0 && status != 1 && status != 2)) {
+            throw new BizException(ResultCode.PARAM_ERROR.getCode(),
+                    "状态只能为 0(下架) / 1(在售) / 2(已售出)");
+        }
+        Product product = getOwnedProduct(productId, userId);
+        product.setStatus(status);
+        productMapper.updateById(product);
+        stringRedisTemplate.delete(RedisKeyConstant.PRODUCT_DETAIL + productId);
+        log.info("商品状态变更：productId={}, status={}, userId={}", productId, status, userId);
+    }
+
+    @Override
+    public void delete(Long productId, Long userId) {
+        getOwnedProduct(productId, userId);
+        // 逻辑删除：@TableLogic 会改写为 UPDATE ... SET deleted = 1
+        productMapper.deleteById(productId);
+        stringRedisTemplate.delete(RedisKeyConstant.PRODUCT_DETAIL + productId);
+        log.info("商品删除成功：productId={}, userId={}", productId, userId);
+    }
+
+    @Override
+    public List<ProductVO> listMine(ProductQuery query, Long userId) {
+        Page<Product> page = new Page<>(query.getSafePageNum(), query.getSafePageSize());
+        LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<>();
+        // 核心：只查自己的商品，走 idx_seller 索引
+        wrapper.eq(Product::getSellerId, userId);
+        applySort(wrapper, query.getSortBy());
+        IPage<Product> result = productMapper.selectPage(page, wrapper);
+        log.info("我的发布查询：userId={}, total={}", userId, result.getTotal());
+        return result.getRecords().stream()
+                .map(this::convertToProductVO)
+                .toList();
+    }
+
+    /**
+     * 取出商品并校验归属，防止水平越权。
+     *
+     * <p><b>为什么必须校验：</b>只判断商品存在是不够的——
+     * 否则任何登录用户都能修改、下架、删除别人的商品。</p>
+     *
+     * <p>注意用 equals 而不是 ==：Long 是包装类型，超出 -128~127 后
+     * == 比较的是对象地址，会导致「明明是自己却报越权」。</p>
+     *
+     * @param productId 商品 ID
+     * @param userId    当前用户 ID
+     * @return 商品实体
+     */
+    private Product getOwnedProduct(Long productId, Long userId) {
+        Product product = productMapper.selectById(productId);
+        if (product == null) {
+            throw new BizException(ResultCode.PRODUCT_NOT_FOUND);
+        }
+        if (!product.getSellerId().equals(userId)) {
+            throw new BizException(ResultCode.FORBIDDEN.getCode(), "只能操作自己发布的商品");
+        }
+        return product;
+    }
+
+    /**
+     * 清洗标签：去掉 # 与首尾空格，过滤空值、含逗号值、超长值，去重并限制数量。
+     *
+     * <p><b>为什么必须过滤逗号：</b>存储格式是逗号分隔，
+     * 若标签本身含逗号，拼进字符串后会被误解析成两个标签。</p>
+     *
+     * @param rawTags 原始标签
+     * @return 清洗后的标签，永不为 null
+     */
+    private List<String> cleanTags(List<String> rawTags) {
+        if (rawTags == null || rawTags.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return rawTags.stream()
+                .filter(Objects::nonNull)
+                .map(tag -> tag.replace("#", "").trim())
+                .filter(tag -> !tag.isEmpty())
+                .filter(tag -> !tag.contains(","))
+                .filter(tag -> tag.length() <= 20)
+                .distinct()
+                .limit(MAX_TAG_COUNT)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 把逗号分隔的标签串拆成列表。
+     *
+     * @param tags 存储的标签串，可能为 null 或空
+     * @return 标签列表，永不为 null
+     */
+    private List<String> splitTags(String tags) {
+        if (tags == null || tags.isBlank()) {
+            return Collections.emptyList();
+        }
+        return Arrays.stream(tags.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+    }}

@@ -4,9 +4,11 @@ import com.students.common.result.Result;
 import com.students.common.result.ResultCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.stream.Collectors;
@@ -63,6 +65,32 @@ public class GlobalExceptionHandler {
     public Result<?> handleNoResourceFound(NoResourceFoundException e) {
         log.warn("请求路径不存在：{}", e.getResourcePath());
         return Result.fail(ResultCode.NOT_FOUND);
+    }
+
+    /**
+     * 请求方法不支持（例如把 GET 接口用 PUT 调用）。
+     *
+     * @param e 方法不支持异常
+     * @return 统一错误结果
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public Result<?> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
+        log.warn("请求方法不支持：{}", e.getMessage());
+        return Result.fail(ResultCode.PARAM_ERROR.getCode(),
+                "不支持的请求方法：" + e.getMethod());
+    }
+
+    /**
+     * 路径或查询参数类型不匹配（例如 /api/product/mine 被当成 id 解析）。
+     *
+     * @param e 类型不匹配异常
+     * @return 统一错误结果
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public Result<?> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+        log.warn("参数类型不匹配：name={}, value={}", e.getName(), e.getValue());
+        return Result.fail(ResultCode.PARAM_ERROR.getCode(),
+                "参数格式错误：" + e.getName());
     }
 
     /**

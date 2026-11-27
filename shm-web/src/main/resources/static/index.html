@@ -117,6 +117,31 @@
         .back-link { color: #4c51bf; cursor: pointer; font-size: 14px; margin-bottom: 16px; display: inline-block; }
         .back-link:hover { text-decoration: underline; }
         .hidden { display: none !important; }
+
+        /* 我的发布 */
+        .mine-item { display: flex; align-items: center; gap: 14px; padding: 14px;
+            border: 1px solid #eee; border-radius: 10px; margin-bottom: 12px; background: #fafbff; }
+        .mine-cover { width: 70px; height: 70px; border-radius: 8px; flex-shrink: 0;
+            background: linear-gradient(135deg,#e0e7ff,#f3e8ff); display: flex;
+            align-items: center; justify-content: center; color: #a0aec0; font-size: 11px; }
+        .mine-info { flex: 1; min-width: 0; }
+        .mine-title { font-size: 15px; color: #333; margin-bottom: 6px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .mine-meta { font-size: 12px; color: #999; }
+        .mine-price { color: #e53e3e; font-weight: 700; font-size: 16px; }
+        .mine-actions { display: flex; gap: 8px; flex-shrink: 0; }
+        .tag { display: inline-block; background: #eef2ff; color: #4c51bf;
+            padding: 2px 8px; border-radius: 10px; font-size: 12px; margin-right: 6px; }
+        .status-tag { display: inline-block; padding: 2px 8px; border-radius: 10px;
+            font-size: 11px; margin-left: 8px; }
+        .status-on { background: #e6fffa; color: #2c7a7b; }
+        .status-off { background: #fff5f5; color: #c53030; }
+        .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,.45);
+            display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-box { background: #fff; border-radius: 14px; padding: 26px;
+            width: 480px; max-width: 92vw; max-height: 88vh; overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+
     </style>
 </head>
 <body>
@@ -147,6 +172,7 @@
             <div class="logo">拾光集</div>
             <div class="user-info">
                 <span class="badge" id="userName">-</span>
+                <button class="btn btn-sm" onclick="showMine()">我的发布</button>
                 <button class="btn btn-sm" onclick="doLogout()">退出登录</button>
             </div>
         </div>
@@ -163,6 +189,7 @@
             <div class="logo">拾光集</div>
             <div class="user-info">
                 <span class="badge" id="userName2">-</span>
+                <button class="btn btn-sm" onclick="showMine()">我的发布</button>
                 <button class="btn btn-sm" onclick="doLogout()">退出登录</button>
             </div>
         </div>
@@ -172,7 +199,53 @@
         </div>
     </div>
 
+
+    <!-- ========== 我的发布页 ========== -->
+    <div id="minePage" class="hidden">
+        <div class="topbar">
+            <div class="logo">拾光集</div>
+            <div class="user-info">
+                <span class="badge" id="userName3">-</span>
+                <button class="btn btn-sm" onclick="showList()">返回列表</button>
+                <button class="btn btn-sm" onclick="doLogout()">退出登录</button>
+            </div>
+        </div>
+        <div class="card">
+            <h2>我的发布 <span id="mineCount" style="font-size:13px;color:#999;font-weight:400">(0 件)</span></h2>
+            <div id="mineList"></div>
+            <div id="mineLoading" class="loading">加载中...</div>
+        </div>
+    </div>
+
 </div>
+
+
+    <!-- ========== 编辑弹窗 ========== -->
+    <div id="editModal" class="modal-mask hidden">
+        <div class="modal-box">
+            <h3 style="margin-bottom:18px;font-size:17px">编辑商品</h3>
+            <div class="form-item">
+                <label>标题</label>
+                <input id="editTitle" type="text" maxlength="100">
+            </div>
+            <div class="form-item">
+                <label>售价（元）</label>
+                <input id="editPrice" type="number" step="0.01" min="0.01">
+            </div>
+            <div class="form-item">
+                <label>描述</label>
+                <textarea id="editDesc" maxlength="2000" style="width:100%;height:80px;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;outline:none;resize:vertical;"></textarea>
+            </div>
+            <div class="form-item">
+                <label>标签（逗号分隔，如 尼康Z30,相机）</label>
+                <input id="editTags" type="text" placeholder="尼康Z30,相机,九成新">
+            </div>
+            <div style="display:flex;gap:10px;margin-top:20px">
+                <button class="btn" style="background:#f0f2ff;color:#4c51bf" onclick="closeEdit()">取消</button>
+                <button class="btn" id="editSaveBtn" onclick="saveEdit()">保存</button>
+            </div>
+        </div>
+    </div>
 
 <div id="toast" class="toast"></div>
 
@@ -316,6 +389,7 @@
                 <div class="detail-seller">卖家：${escapeHtml(d.sellerNickname || '未知')}　|　浏览 ${d.viewCount || 0} 次</div>
                 <div class="detail-price">¥${d.price} <span style="font-size:14px;color:#aaa;text-decoration:line-through">¥${d.originalPrice || ''}</span></div>
                 <div class="detail-desc">${escapeHtml(d.description || '暂无描述')}</div>
+                <div style="margin:12px 0">${(d.tags || []).map(t => '<span class="tag">#' + escapeHtml(t) + '</span>').join('')}</div>
                 <div class="actions">
                     <div class="act-btn${d.liked ? ' active' : ''}" id="likeBtn" onclick="toggleLike()">👍 点赞 <span id="likeCount">${d.likeCount || 0}</span></div>
                     <div class="act-btn${d.wanted ? ' active-want' : ''}" id="wantBtn" onclick="toggleWant()">🤝 想要 <span id="wantCount">${d.wantCount || 0}</span></div>
@@ -429,6 +503,119 @@
             toast(r.liked ? '已点赞' : (r.dislikeCount > 0 ? '已点踩' : '已取消'));
             loadComments(currentProductId);
         } catch (e) { toast(e.message, false); }
+    }
+
+
+    /* ==================== 我的发布 ==================== */
+    async function showMine() {
+        document.getElementById('loginPage').classList.add('hidden');
+        document.getElementById('listPage').classList.add('hidden');
+        document.getElementById('detailPage').classList.add('hidden');
+        document.getElementById('minePage').classList.remove('hidden');
+        document.getElementById('userName3').textContent = currentUser ? currentUser.nickname : '-';
+        await loadMine();
+    }
+
+    async function loadMine() {
+        const box = document.getElementById('mineList');
+        const loading = document.getElementById('mineLoading');
+        box.innerHTML = ''; loading.classList.remove('hidden');
+        try {
+            const list = await request('/api/product/mine?pageNum=1&pageSize=50');
+            loading.classList.add('hidden');
+            document.getElementById('mineCount').textContent = '(' + (list ? list.length : 0) + ' 件)';
+            if (!list || list.length === 0) {
+                box.innerHTML = '<div class="loading">还没有发布过商品</div>';
+                return;
+            }
+            box.innerHTML = list.map(p => `
+                <div class="mine-item">
+                    <div class="mine-cover">${p.coverImage ? '图片' : '无图'}</div>
+                    <div class="mine-info">
+                        <div class="mine-title">${escapeHtml(p.title)}
+                            <span class="status-tag ${p.status === 1 ? 'status-on' : 'status-off'}">${statusText(p.status)}</span>
+                        </div>
+                        <div class="mine-meta">
+                            <span class="mine-price">¥${p.price}</span>
+                            &nbsp;·&nbsp; 浏览 ${p.viewCount || 0}
+                            ${(p.tags || []).map(t => '<span class="tag">#' + escapeHtml(t) + '</span>').join('')}
+                        </div>
+                    </div>
+                    <div class="mine-actions">
+                        <button class="btn btn-sm" onclick="openEdit(${p.id})">编辑</button>
+                        <button class="btn btn-sm" onclick="toggleStatus(${p.id}, ${p.status})">${p.status === 1 ? '下架' : '上架'}</button>
+                        <button class="btn btn-sm" style="color:#e53e3e;border-color:#ffd0d0" onclick="removeProduct(${p.id})">删除</button>
+                    </div>
+                </div>`).join('');
+        } catch (e) {
+            loading.classList.add('hidden');
+            box.innerHTML = '<div class="loading">' + e.message + '</div>';
+        }
+    }
+
+    function statusText(s) { return s === 1 ? '在售' : (s === 0 ? '已下架' : '已售出'); }
+
+    async function toggleStatus(id, currentStatus) {
+        const target = currentStatus === 1 ? 0 : 1;
+        try {
+            await request('/api/product/' + id + '/status?status=' + target, { method: 'PUT' });
+            toast(target === 1 ? '已上架' : '已下架');
+            loadMine();
+        } catch (e) { toast(e.message, false); }
+    }
+
+    async function removeProduct(id) {
+        if (!confirm('确定删除这个商品吗？')) return;
+        try {
+            await request('/api/product/' + id, { method: 'DELETE' });
+            toast('已删除');
+            loadMine();
+        } catch (e) { toast(e.message, false); }
+    }
+
+    /* ==================== 编辑弹窗 ==================== */
+    let editingId = null;
+
+    async function openEdit(id) {
+        editingId = id;
+        try {
+            const d = await request('/api/product/' + id);
+            document.getElementById('editTitle').value = d.title || '';
+            document.getElementById('editPrice').value = d.price || '';
+            document.getElementById('editDesc').value = d.description || '';
+            document.getElementById('editTags').value = (d.tags || []).join(',');
+            document.getElementById('editModal').classList.remove('hidden');
+        } catch (e) { toast(e.message, false); }
+    }
+
+    function closeEdit() {
+        document.getElementById('editModal').classList.add('hidden');
+        editingId = null;
+    }
+
+    async function saveEdit() {
+        const title = document.getElementById('editTitle').value.trim();
+        const price = parseFloat(document.getElementById('editPrice').value);
+        const description = document.getElementById('editDesc').value;
+        const tagsRaw = document.getElementById('editTags').value;
+        if (!title) { toast('标题不能为空', false); return; }
+        if (!price || price <= 0) { toast('售价必须大于 0', false); return; }
+        const tags = tagsRaw.split(',').map(t => t.trim()).filter(t => t);
+        const btn = document.getElementById('editSaveBtn');
+        btn.disabled = true; btn.textContent = '保存中...';
+        try {
+            await request('/api/product/' + editingId, {
+                method: 'PUT',
+                body: JSON.stringify({ title, price, description, tags })
+            });
+            toast('修改成功');
+            closeEdit();
+            loadMine();
+        } catch (e) {
+            toast(e.message, false);
+        } finally {
+            btn.disabled = false; btn.textContent = '保存';
+        }
     }
 
     /* ==================== 工具 ==================== */

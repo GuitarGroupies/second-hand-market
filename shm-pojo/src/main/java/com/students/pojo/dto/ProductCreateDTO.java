@@ -50,4 +50,8 @@ public class ProductCreateDTO implements Serializable {
     /** 图片地址列表，第一张作为封面 */
     @Size(max = 9, message = "最多上传 9 张图片")
     private List<String> images;
+
+    /** 标签，最多 10 个，每个最多 20 字 */
+    @Size(max = 10, message = "最多添加 10 个标签")
+    private List<String> tags;
 }

@@ -69,4 +69,7 @@ public class ProductDetailVO implements Serializable {
 
     /** 发布时间 */
     private LocalDateTime createTime;
+
+    /** 标签列表（不含 # 号，前端自行拼接） */
+    private List<String> tags;
 }
