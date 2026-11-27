@@ -37,6 +37,9 @@ public class ProductVO implements Serializable {
     /** 分类 ID */
     private Long categoryId;
 
+    /** 状态：0 下架，1 在售，2 已售出 */
+    private Integer status;
+
     /** 浏览量 */
     private Integer viewCount;
 

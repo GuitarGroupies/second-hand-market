@@ -100,7 +100,7 @@ public class CommentServiceImpl implements CommentService {
         Set<Long> userIds = all.stream()
                 .map(ProductComment::getUserId)
                 .collect(Collectors.toSet());
-        Map<Long, SysUser> userMap = sysUserMapper.selectBatchIds(userIds).stream()
+        Map<Long, SysUser> userMap = sysUserMapper.selectByIds(userIds).stream()
                 .collect(Collectors.toMap(SysUser::getId, Function.identity()));
 
         // 3. 批量查当前用户对这些评论的投票，避免 N+1

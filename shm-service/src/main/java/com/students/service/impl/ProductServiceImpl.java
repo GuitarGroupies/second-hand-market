@@ -12,6 +12,7 @@ import com.students.mapper.ProductLikeMapper;
 import com.students.mapper.ProductMapper;
 import com.students.mapper.ProductWantMapper;
 import com.students.mapper.SysUserMapper;
+import com.students.mapper.UserFavoriteMapper;
 import com.students.pojo.dto.ProductCreateDTO;
 import com.students.pojo.dto.ProductUpdateDTO;
 import com.students.pojo.entity.Product;
@@ -19,6 +20,7 @@ import com.students.pojo.entity.ProductImage;
 import com.students.pojo.entity.ProductLike;
 import com.students.pojo.entity.ProductWant;
 import com.students.pojo.entity.SysUser;
+import com.students.pojo.entity.UserFavorite;
 import com.students.pojo.query.ProductQuery;
 import com.students.pojo.vo.ProductDetailVO;
 import com.students.pojo.vo.ProductVO;
@@ -80,6 +82,8 @@ public class ProductServiceImpl implements ProductService {
     private final ProductLikeMapper productLikeMapper;
 
     private final ProductWantMapper productWantMapper;
+
+    private final UserFavoriteMapper userFavoriteMapper;
 
     private final ViewCountService viewCountService;
 
@@ -156,6 +160,9 @@ public class ProductServiceImpl implements ProductService {
         detail.setWantCount(productWantMapper.selectCount(
                 new LambdaQueryWrapper<ProductWant>()
                         .eq(ProductWant::getProductId, productId)));
+        detail.setFavoriteCount(userFavoriteMapper.selectCount(
+                new LambdaQueryWrapper<UserFavorite>()
+                        .eq(UserFavorite::getProductId, productId)));
         fillUserState(detail, userId);
 
         // 5. 写回缓存：基础 TTL + 随机偏移，防雪崩
@@ -215,6 +222,7 @@ public class ProductServiceImpl implements ProductService {
         if (userId == null) {
             vo.setLiked(false);
             vo.setWanted(false);
+            vo.setFavorited(false);
             return;
         }
         vo.setLiked(productLikeMapper.selectCount(
@@ -225,6 +233,10 @@ public class ProductServiceImpl implements ProductService {
                 new LambdaQueryWrapper<ProductWant>()
                         .eq(ProductWant::getUserId, userId)
                         .eq(ProductWant::getProductId, vo.getId())) > 0);
+        vo.setFavorited(userFavoriteMapper.selectCount(
+                new LambdaQueryWrapper<UserFavorite>()
+                        .eq(UserFavorite::getUserId, userId)
+                        .eq(UserFavorite::getProductId, vo.getId())) > 0);
     }
 
     /**
@@ -258,6 +270,7 @@ public class ProductServiceImpl implements ProductService {
         vo.setOriginalPrice(entity.getOriginalPrice());
         vo.setCategoryId(entity.getCategoryId());
         vo.setViewCount(entity.getViewCount());
+        vo.setStatus(entity.getStatus());
         vo.setCreateTime(entity.getCreateTime());
         vo.setTags(splitTags(entity.getTags()));
         return vo;

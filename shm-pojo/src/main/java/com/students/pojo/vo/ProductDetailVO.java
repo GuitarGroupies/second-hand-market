@@ -67,6 +67,12 @@ public class ProductDetailVO implements Serializable {
     /** 当前用户是否已想要（未登录为 null） */
     private Boolean wanted;
 
+    /** 收藏总数 */
+    private Long favoriteCount;
+
+    /** 当前用户是否已收藏（未登录为 null） */
+    private Boolean favorited;
+
     /** 发布时间 */
     private LocalDateTime createTime;
 
