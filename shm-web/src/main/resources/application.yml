@@ -47,3 +47,12 @@ shm:
     secret: shiguangji-second-hand-market-jwt-secret-2026-v1-keep-it-long-enough
     # Token 有效期（秒）：7 天
     expire-seconds: 604800
+
+  # 游客限流配置
+  guest:
+    # 是否启用游客限流（本地调试可临时设为 false）
+    enabled: true
+    # 游客每天可浏览的次数（商品列表 / 详情 / 评论）
+    limit: 10
+    # 本地开发白名单：命中则不限流，避免自测时被封
+    whitelist: 127.0.0.1,0:0:0:0:0:0:0:1
